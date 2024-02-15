@@ -1,0 +1,30 @@
+[project]
+name = "contour-depth"
+version = "0.0"
+authors = [
+  { name="Nicolas Chaves-de-Plaza", email="n.f.chavesdeplaza@tudelft.nl" }
+]
+description = "Python library for computing statistical depth of ensembles of contours. The library supports the Contour Band Depth and Inclusion Depth methods. It also supports finding the ensemble's modes of variation by using depth-based clustering. Finally, it offers visualization utilities like spaghetti plots and Contour Box Plots."
+readme = "README.md"
+requires-python = ">=3.4"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+  "numpy",
+  "scikit-image",
+  "scipy"
+]
+
+[project.urls]
+Homepage = "https://github.com/chadepl/contour-depth"
+Issues = "https://github.com/chadepl/contour-depth/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/contour_depth"]
