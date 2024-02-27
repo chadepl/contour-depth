@@ -43,10 +43,6 @@ if __name__ == "__main__":
   plt.show()
 ```
 
-## Documentation
-
-For detailed usage instructions and API documentation, please refer to the [documentation](https://link-to-documentation).
-
 ## Citation
 
 If you use this library in your work and would like to cite it, please use the following BibTeX entry:
@@ -63,4 +59,4 @@ If you use this library in your work and would like to cite it, please use the f
 
 ## License
 
-This project is licensed under the terms of the [MIT license](LICENSE).
+This project is licensed under the terms of the [MIT license](https://github.com/chadepl/contour-depth/blob/main/LICENSE).
