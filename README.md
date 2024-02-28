@@ -15,6 +15,13 @@ pip install contour-depth
 
 ## Usage
 
+To setup an environment follow the steps:
+1. Install a conda (we recommend using [miniconda](https://docs.conda.io/projects/miniconda/en/latest/))
+2. Create environment: `conda create --name=test-env python=3.9`
+3. Activate environment: `conda activate test-env`
+4. Install dependencies with pip: `pip install contour-depth` and `pip install matplotlib`. Other dependencies should be already available.
+5. To test installation, from the root of the repository run `python visualize.py`. No errors should be raised.
+
 ```python
 from contour_depth import Depth, Metric
 import contour_depth
