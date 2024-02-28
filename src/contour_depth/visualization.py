@@ -83,7 +83,7 @@ def contourboxplot(masks, depth=Depth.EpsilonInclusionDepth, clustering=None, se
     if depth == Depth.ContourBandDepth or depth == Depth.ModifiedContourBandDepth:
         depths = np.zeros(len(masks))  # TODO
     elif depth == Depth.InclusionDepth or depth == Depth.EpsilonInclusionDepth:
-        depths = np.zeros(len(masks))  # TODO
+        depths = inclusiondepth(masks, depth=depth)              
     else:
         assert False, f"Unsupported depth {depth}"
     cluster_statistics = get_bp_depth_elements(masks, depths, clustering=clustering, outlier_type=outlier_type, epsilon_out=epsilon_out)
