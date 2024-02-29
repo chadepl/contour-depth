@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 from .depth import Depth, compute_band_depth
 
 colors = ['#66c2a5', '#fc8d62', '#8da0cb', '#e78ac3',
@@ -9,27 +8,56 @@ colors = ['#66c2a5', '#fc8d62', '#8da0cb', '#e78ac3',
 
 # Plots each contour in a different color.
 # Returns newly created figure, otherwise the figure to which the ax is connected.
-def show_spaghetti_plot(masks, iso_value, arr=None, is_arr_categorical=True, vmin=None, vmax=None, ax=None, plot_opts=None):
+def show_spaghetti_plot(masks, iso_value, arr=None, is_arr_categorical=True, vmin=None, vmax=None, cm="magma", ax=None, plot_opts=None):
+    """Plots an ensemble of contours using a spaghetti plot.
+
+    Parameters
+    ----------
+    masks : list
+        List of 2d ndarrays, each corresponding to a scalar field/
+    iso_value : bool
+        Iso value to use to convert the ensemble scalar fields into binary masks.
+    arr : ndarray, optional
+        Array used for coloring ensemble members, by default None. It can be an array of ints or floats.
+    is_arr_categorical : bool, optional
+        Used to determine which color map to use, by default True.
+    vmin : float, optional
+        Lower bound to rescale arr, by default None.
+    vmax : float, optional
+        Upper bound to rescale arr, by default None.
+    cm : str, optional
+        Valid matplot lib color map name, by default "magma".
+    ax : Axes, optional
+        Pyplot Axes, by default None.
+    plot_opts : dict, optional
+        Dict with plotting options, by default None. Currently supported options are the lines alpha (float [0, 1]) and their linewidth (int > 0).
+
+    Returns
+    -------
+    Figure
+        The figure attached to the ax on which the spaghetti plot was plotted.
+    """
+    
     num_members = len(masks)
 
+    # Parse plot_opts
     if plot_opts is None:
         plot_opts = dict()
     alpha = plot_opts.get("alpha", 0.5)
     linewidth = plot_opts.get("linewidth", 1)
 
+    # Define coloring
     if arr is not None:
-        arr = np.array(arr).flatten()
-        if is_arr_categorical:
-            arr = arr.astype(int)
+        arr = np.array(arr).flatten()            
     else:
         is_arr_categorical = True
         arr = np.random.choice(np.arange(len(colors)),
                                num_members, replace=True)
 
     if is_arr_categorical:
+        arr = arr.astype(int)
         cs = [colors[e] for e in arr]
-    else:
-        arr = np.array(arr)
+    else:         
         if vmin is not None:
             arr = np.clip(arr, a_min=vmin, a_max=arr.max())
         if vmax is not None:
@@ -37,23 +65,19 @@ def show_spaghetti_plot(masks, iso_value, arr=None, is_arr_categorical=True, vmi
 
         if vmin is None and vmax is None:  # scale to fill 0-1 range
             arr = (arr - arr.min()) / (arr.max() - arr.min())
-        cs = [cm.magma(e) for e in arr]
+        cs = [plt.get_cmap(cm)(e) for e in arr]
 
-    ax_was_none = False
+    # Plotting
     if ax is None:
-        ax_was_none = True
-        fig, ax = plt.subplots(layout="tight", figsize=(10, 10))
+        fig, ax = plt.subplots()
+    else:
+        fig = ax.figure
 
     for i, mask in enumerate(masks):
         ax.contour(mask, levels=[iso_value, ], linewidths=[
                    linewidth, ], colors=[cs[i], ], alpha=alpha)
 
-    ax.set_axis_off()
-
-    if ax_was_none:
-        plt.show()
-    else:
-        return ax
+    return fig
 
 
 # Plots contour boxplot based on the method (depth notion).
