@@ -1,15 +1,18 @@
-from contour_depth import Depth, Metric
-import contour_depth
 import matplotlib.pyplot as plt
 import scipy.signal
 import numpy as np
 import time
 
+import sys  # TODO: remove
+sys.path.insert(0, "./src")  # TODO: remove
+from contour_depth import Depth, Metric
+import contour_depth
+
 if __name__ == "__main__":
 	masks = contour_depth.synthetic_data.three_rings(num_masks=250, num_rows=256, num_cols=256, seed=42)
 	start = time.time()
-	#clusters = contour_depth.cluster_inclusion_matrix(masks=masks, num_clusters=3, depth=Depth.EpsilonInclusionDepth, metric=Metric.Depth, kmeans_random_seed=42)
-	clusters = contour_depth.cluster_optimized_eid(masks=masks, num_clusters=3, metric=Metric.Depth, kmeans_random_seed=42)
+	clusters = contour_depth.cluster_inclusion_matrix(masks=masks, num_clusters=3, depth=Depth.EpsilonInclusionDepth, metric=Metric.Depth, kmeans_random_seed=42)
+	#clusters = contour_depth.cluster_optimized_eid(masks=masks, num_clusters=3, metric=Metric.Depth, kmeans_random_seed=42)
 	print(f"{(time.time() - start)*1000:.2f} ms to compute clusters")
 
 	height, width = masks[0].shape

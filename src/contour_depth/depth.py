@@ -2,6 +2,7 @@ import math
 import numpy as np
 from enum import Enum
 
+
 class Depth(Enum):
     ContourBandDepth = 1
     InclusionDepth = 2
@@ -9,7 +10,7 @@ class Depth(Enum):
     EpsilonInclusionDepth = 4
 
 
-def compute_band_depth(masks, depth : Depth):
+def compute_band_depth(masks, depth: Depth):
     if depth == Depth.ContourBandDepth:
         return compute_exact_contour_band_depth(masks)
     elif depth == Depth.InclusionDepth:
@@ -20,6 +21,7 @@ def compute_band_depth(masks, depth : Depth):
         return compute_epsilon_inclusion_depth(masks)
     else:
         assert False, f"Unknown depth type {depth}"
+
 
 def compute_exact_contour_band_depth(masks):
     num_subsets = math.comb(len(masks) - 1, 2)
@@ -53,11 +55,9 @@ def compute_epsilon_contour_band_depth(masks, epsilon=None):
 
                 mask_intersection = j1_mask & j2_mask
                 mask_union = j1_mask | j2_mask
-                res_intersection = epsilon_subset_operator(
-                    mask_intersection, mask)
+                res_intersection = epsilon_subset_operator(mask_intersection, mask)
                 res_union = epsilon_subset_operator(mask, mask_union)
-                epsilon_matrix[i, subset_idx] = max(
-                    res_intersection, res_union)
+                epsilon_matrix[i, subset_idx] = max(res_intersection, res_union)
                 subset_idx += 1
 
     if not epsilon:
@@ -84,8 +84,7 @@ def compute_epsilon_inclusion_depth(masks):
     precompute_out = np.sum(area_normalized_masks, axis=0)
 
     num_masks = len(masks)
-    IN_in = num_masks - np.sum(area_normalized_masks *
-                               precompute_in, axis=(1, 2))
+    IN_in = num_masks - np.sum(area_normalized_masks * precompute_in, axis=(1, 2))
     IN_out = num_masks - np.sum(inverted_masks * precompute_out, axis=(1, 2))
     # We remove from the count in_ci, which we do not consider as it adds to both IN_in and IN_out equally
     return (np.minimum(IN_in, IN_out) - 1) / len(masks)
