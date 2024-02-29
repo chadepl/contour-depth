@@ -6,8 +6,6 @@ colors = ['#66c2a5', '#fc8d62', '#8da0cb', '#e78ac3',
           '#a6d854', '#ffd92f', '#e5c494', '#b3b3b3']
 
 
-# Plots each contour in a different color.
-# Returns newly created figure, otherwise the figure to which the ax is connected.
 def show_spaghetti_plot(masks, iso_value, arr=None, is_arr_categorical=True, vmin=None, vmax=None, cm="magma", ax=None, plot_opts=None):
     """Plots an ensemble of contours using a spaghetti plot.
 
