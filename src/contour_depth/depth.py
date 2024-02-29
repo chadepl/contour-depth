@@ -1,155 +1,97 @@
-from math import comb
+import math
 import numpy as np
-from scipy.optimize import bisect
 from enum import Enum
 
 class Depth(Enum):
-    EpsilonInclusionDepth = 1
+    ContourBandDepth = 1
     InclusionDepth = 2
-    ContourBandDepth = 3
-    ModifiedContourBandDepth = 4
+    EpsilonContourBandDepth = 3
+    EpsilonInclusionDepth = 4
 
 
-# Computes the contour band depth of an ensemble of contours with J=2.
-# Contours are represented as a list of 2 or 3d binary numpy arrays.
-# All arrays in the list should have the same dimensions.
-# Method is either strict or modified contour band depth.
-# If a threshold is specified, the matrix is thresholded as proposed in the CBD paper.
-# Otherwise, the use the N^2 method.
-# Returns a ndarray of shape (len(masks), ) with the depth score per mask.
-# TODO: implement
-def contourbanddepth(masks, depth=Depth.ModifiedContourBandDepth, target_mean_mcbd=None):
-    num_masks = len(masks)
-    num_subsets = comb(num_masks, 2)
-
-    if depth == Depth.ContourBandDepth:  # use inclusion matrix O(N^2)
-        depths = []
-        inclusion_matrix = compute_inclusion_matrix(masks)
-        N_a = np.sum(inclusion_matrix, axis=1)
-        N_b = np.sum(inclusion_matrix.T, axis=1)
-        N_ab_range = num_masks#N - j_in_cluster
-        depths = (N_a * N_b) / (N_ab_range * N_ab_range)
-        print(num_subsets)
-        print(N_ab_range * N_ab_range)
-
-    elif depth == Depth.ModifiedContourBandDepth:
-        depths = []
-        bands = compute_band_info(masks)
-        for in_mi in masks:
-            intersect_subset_ci = []
-            ci_subset_union = []
-
-            for band in bands:
-                union = band["union"]
-                intersection = band["intersection"]
-
-                lc_frac = (intersection - in_mi)
-                lc_frac = (lc_frac > 0).sum()
-                lc_frac = lc_frac / (intersection.sum() + np.finfo(float).eps)
-
-                rc_frac = (in_mi - union)
-                rc_frac = (rc_frac > 0).sum()
-                rc_frac = rc_frac / (in_mi.sum() + np.finfo(float).eps)
-
-                intersect_subset_ci.append(lc_frac)
-                ci_subset_union.append(rc_frac)
-
-            depths.append((intersect_subset_ci, ci_subset_union))
-
-        depth_matrix_left = np.array([a[0] for a in depths])
-        depth_matrix_right = np.array([a[1] for a in depths])
-
-        if target_mean_mcbd is None:  # No threshold  
-            depth_matrix_left = 1 - depth_matrix_left
-            depth_matrix_right = 1 - depth_matrix_right
-            depth_matrix = np.minimum(depth_matrix_left, depth_matrix_right)
-        else: # automatically determined threshold as in the paper       
-            def mean_depth_deviation(mat, threshold, target):
-                return target - (((mat < threshold).astype(float)).sum(axis=1) / num_subsets).mean()
-        
-            depth_matrix = np.maximum(depth_matrix_left, depth_matrix_right)
-            try:
-                t = bisect(lambda v: mean_depth_deviation(depth_matrix, v, target_mean_mcbd), depth_matrix.min(),
-                        depth_matrix.max())
-            except RuntimeError:
-                print("Binary search failed to converge")
-                t = depth_matrix.mean()
-
-            depth_matrix = (depth_matrix < t).astype(float)
-
-        depths = depth_matrix.mean(axis=1)
+def compute_band_depth(masks, depth : Depth):
+    if depth == Depth.ContourBandDepth:
+        return compute_exact_contour_band_depth(masks)
+    elif depth == Depth.InclusionDepth:
+        return compute_inclusion_depth(masks)
+    elif depth == Depth.EpsilonContourBandDepth:
+        return compute_epsilon_contour_band_depth(masks)
+    elif depth == Depth.EpsilonInclusionDepth:
+        return compute_epsilon_inclusion_depth(masks)
     else:
-        assert False, f"Unsupported depth {depth}"
+        assert False, f"Unknown depth type {depth}"
 
-    return depths
-
-
-def compute_band_info(data):
-    num_contours = len(data)
-    bands = []
-    for i in range(num_contours):
-        band_a = data[i]
-        for j in range(i, num_contours):
-            band_b = data[j]
-            if i != j:
-                subset_sum = band_a + band_b
-
-                band = dict()
-                band["union"] = (subset_sum > 0).astype(float)
-                band["intersection"] = (subset_sum == 2).astype(float)
-                bands.append(band)
-    return bands
+def compute_exact_contour_band_depth(masks):
+    num_subsets = math.comb(len(masks) - 1, 2)
+    masks = np.array(masks, dtype=np.uint32)
+    inclusion_matrix = compute_inclusion_matrix(masks)
+    N_a = np.sum(inclusion_matrix, axis=1)
+    N_b = np.sum(inclusion_matrix.T, axis=1)
+    return (N_a * N_b) / num_subsets
 
 
-# Computes the inclusion depth of an ensemble of contours.
-# Contours are represented as a list of 2 or 3d binary numpy arrays.
-# All arrays in the list should have the same dimensions.
-# Method is either strict or epsilon inclusion depth.
-# Returns a ndarray of shape (len(masks), ) with the depth score per mask.
-# TODO: implement
-def inclusiondepth(masks, depth=Depth.EpsilonInclusionDepth):
+def compute_epsilon_contour_band_depth(masks, epsilon=None):
+    # https://users.cs.utah.edu/~kirby/Publications/Kirby-82.pdf
+    def epsilon_subset_operator(A, B):
+        area_A = np.sum(A)
+        if area_A == 0:
+            return 0
+        else:
+            area_A_min_B = np.sum(A & (~B))
+            return area_A_min_B / area_A
+
+    masks = np.array(masks, dtype=np.uint32)
     num_masks = len(masks)
+    num_subsets = math.comb(num_masks - 1, 2)
+    epsilon_matrix = np.zeros((num_masks, num_subsets))
+    for i, mask in enumerate(masks):
+        subset_idx = 0
+        for j1, j1_mask in enumerate(masks):
+            for j2, j2_mask in enumerate(masks[j1+1:]):
+                if j1 == i or j1+j2+1 == i:
+                    continue
 
-    if depth == Depth.InclusionDepth:  # use inclusion matrix O(N^2)
-        inclusion_matrix = compute_inclusion_matrix(masks)
-        N_a = np.sum(inclusion_matrix, axis=1)
-        N_b = np.sum(inclusion_matrix.T, axis=1)
-        depths = np.minimum(N_a, N_b) / num_masks
-    
-    elif depth == Depth.EpsilonInclusionDepth:  # use O(N) method
-        precompute_in = np.zeros_like(masks[0])
-        for in_mi in masks:
-            precompute_in += 1 - in_mi
-        precompute_out = np.zeros_like(masks[0])
-        for in_mi in masks:
-            precompute_out += in_mi/in_mi.sum()
+                mask_intersection = j1_mask & j2_mask
+                mask_union = j1_mask | j2_mask
+                res_intersection = epsilon_subset_operator(
+                    mask_intersection, mask)
+                res_union = epsilon_subset_operator(mask, mask_union)
+                epsilon_matrix[i, subset_idx] = max(
+                    res_intersection, res_union)
+                subset_idx += 1
 
-        depths = []
-        for i in range(num_masks):
-            IN_in = num_masks - ((masks[i] / masks[i].sum()) * precompute_in).sum()
-            IN_out = num_masks - ((1-masks[i]) * precompute_out).sum()
+    if not epsilon:
+        min_per_column = np.min(epsilon_matrix, axis=1)
+        # min_per_column = epsilon_matrix.flatten()
+        epsilon = sorted(min_per_column)[num_masks // 6]
 
-            # We remove from the count in_ci, which we do not consider as it adds to both IN_in and IN_out equally
-            depth = np.minimum((IN_in - 1)/num_masks, (IN_out - 1)/num_masks)
+    return np.sum(epsilon_matrix <= epsilon, axis=1) / num_subsets
 
-            depths.append(depth)
-        
-        depths = np.array(depths)        
-    else:
-        assert False, f"Unsupported depth {depth}"
-    
-    return depths
-    
+
+def compute_inclusion_depth(masks):
+    num_masks = len(masks)
+    inclusion_matrix = compute_inclusion_matrix(masks)
+    N_a = np.sum(inclusion_matrix, axis=1)
+    N_b = np.sum(inclusion_matrix.T, axis=1)
+    return np.minimum(N_a, N_b) / num_masks
+
+
+def compute_epsilon_inclusion_depth(masks):
+    masks = np.array(masks)
+    inverted_masks = 1 - masks
+    area_normalized_masks = (masks.T / np.sum(masks, axis=(1, 2)).T).T
+    precompute_in = np.sum(inverted_masks, axis=0)
+    precompute_out = np.sum(area_normalized_masks, axis=0)
+
+    num_masks = len(masks)
+    IN_in = num_masks - np.sum(area_normalized_masks *
+                               precompute_in, axis=(1, 2))
+    IN_out = num_masks - np.sum(inverted_masks * precompute_out, axis=(1, 2))
+    # We remove from the count in_ci, which we do not consider as it adds to both IN_in and IN_out equally
+    return (np.minimum(IN_in, IN_out) - 1) / len(masks)
+
 
 def compute_inclusion_matrix(masks):
-    """Matrix that, per contour says if its inside (1) or outside (-1).
-    The entry is 0 if the relationship is ambiguous.
-
-    Parameters
-    ----------
-    masks : _type_
-        _description_
-    """
     num_masks = len(masks)
     masks = np.array(masks).astype(int)
     inclusion_mat = np.zeros((num_masks, num_masks))
@@ -161,14 +103,6 @@ def compute_inclusion_matrix(masks):
 
 
 def compute_epsilon_inclusion_matrix(masks):
-    """Matrix that, per contour says if its inside (1) or outside (-1).
-    The entry is 0 if the relationship is ambiguous.
-
-    Parameters
-    ----------
-    masks : _type_
-        _description_
-    """
     num_masks = len(masks)
     masks = np.array(masks).astype(int)
     inclusion_mat = np.zeros((num_masks, num_masks))
