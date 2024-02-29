@@ -1,4 +1,5 @@
 import numpy as np
+import math
 from scipy.spatial.distance import cdist
 from skimage.draw import ellipse
 from skimage.draw import polygon2mask
@@ -290,6 +291,7 @@ def shape_families(
     from skimage.draw import ellipse, polygon
 
     row_c, col_c = num_rows // 2, num_cols // 2
+    min_dim = min(num_rows, num_cols)
 
     masks = []
     labels = []
@@ -299,36 +301,7 @@ def shape_families(
     else:
         rng = np.random.default_rng(seed)
 
-    radii = rng.normal(100, 20, num_masks)
-
-    # # family A
-    # for i in range(num_masks//2):
-
-    #     radius = radii[i]
-
-    #     mask = np.zeros((512, 512))
-    #     rr, cc = ellipse(row_c, col_c, radius, radius, shape=(512, 512))
-    #     mask[rr, cc] = 1
-    #     masks.append(mask)
-    #     labels.append(0)
-
-    # # family B
-    # for i in range(num_masks - num_masks//2):
-    #     radius = radii[i]
-
-    #     theta = np.linspace(0, 2*np.pi, 100)
-    #     r = np.ones(100) * radius
-    #     r = r + 15 * np.sin(theta * 10)
-
-    #     x = r * np.cos(theta) + 256
-    #     y = r * np.sin(theta) + 256
-
-    #     mask = np.zeros((512, 512))
-    #     rr, cc = polygon(y, x, shape=(512, 512))
-    #     mask[rr, cc] = 1
-    #     masks.append(mask)
-    #     labels.append(1)
-    import math
+    radii = rng.normal(min_dim//5, min_dim//25, num_masks)
 
     def rotate_origin_only(xy, radians):
         """Only rotate a point around the origin (0, 0).
@@ -354,11 +327,11 @@ def shape_families(
         x = np.array([-1, 1, 1, -1])
         y = np.array([-1, -1, 1, 1])
         x, y = rotate_origin_only((x, y), rotations[i])
-        x = x * (100 + scales[i]) + 256 + trans_x[i]
-        y = y * (100 + scales[i]) + 256 + trans_y[i]
+        x = x * (num_cols//5 + scales[i]) + num_cols//2 + trans_x[i]
+        y = y * (num_rows//5 + scales[i]) + num_rows//2 + trans_y[i]
 
-        mask = np.zeros((512, 512))
-        rr, cc = polygon(y, x, shape=(512, 512))
+        mask = np.zeros((num_rows, num_cols))
+        rr, cc = polygon(y, x, shape=(num_rows, num_cols))
         mask[rr, cc] = 1
         # mask = warp(mask, tform, order=0)
 
@@ -370,11 +343,11 @@ def shape_families(
         x = np.array([-1.2, 0, 1.2])
         y = np.array([-0.8, 1.2, -0.8])
         x, y = rotate_origin_only((x, y), rotations[i])
-        x = x * (100 + scales[i]) + 256 + trans_x[i]
-        y = y * (100 + scales[i]) + 256 + trans_y[i]
+        x = x * (num_cols//5 + scales[i]) + num_cols//2 + trans_x[i]
+        y = y * (num_rows//5 + scales[i]) + num_rows//2 + trans_y[i]
 
-        mask = np.zeros((512, 512))
-        rr, cc = polygon(y, x, shape=(512, 512))
+        mask = np.zeros((num_rows, num_cols))
+        rr, cc = polygon(y, x, shape=(num_rows, num_cols))
         mask[rr, cc] = 1
 
         masks.append(mask)
