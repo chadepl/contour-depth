@@ -385,23 +385,6 @@ def shape_families(
     return masks
 
 
-def close_rings(num_masks, num_rows, num_cols, seed=None):
-    # large
-    n = num_masks // 4
-    m1 = circle_ensemble(n, num_rows, num_cols, (0.5, 0.5), (0, 0), 0.25, 0.01, seed)
-    l1 = np.repeat(0, 10).tolist()
-
-    # small
-    m2 = circle_ensemble(n, num_rows, num_cols, (0.5, 0.52), (0, 0), 0.16, 0.02, seed)
-    l2 = np.repeat(1, 10).tolist()
-
-    # shifted
-    m3 = circle_ensemble(num_masks-2*n, num_rows, num_cols, (0.5, 0.7), (0, 0), 0.22, 0.03, seed)
-    l3 = np.repeat(2, 10).tolist()
-
-    return m1 + m2 + m3, l1 + l2 + l3
-
-
 def outlier_cluster(
         num_masks,
         num_rows,
