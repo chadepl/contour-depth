@@ -17,7 +17,7 @@ if __name__ == "__main__":
     axs[0].set_title("Spaghetti plot")
     contour_depth.visualization.show_spaghetti_plot(masks, 0.5, ax=axs[0])
 
-    axs[1].set_title("eCBD")
+    axs[1].set_title("CBD")
     contour_depth.visualization.show_box_plot(masks, clustering=labels, depth=Depth.ContourBandDepth, ax=axs[1])
 
     axs[2].set_title("ID")
