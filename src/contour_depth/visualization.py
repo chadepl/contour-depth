@@ -67,7 +67,7 @@ def spaghettiplot(masks, iso_value, arr=None, is_arr_categorical=True, vmin=None
 # User specificies the outlier method, either depth threshold, percentage or tail.
 # For now, this method does not support overlaying an image.
 # Returns newly created figure, otherwise the figure to which the ax is connected.
-def contourboxplot(masks, depth=Depth.EpsilonInclusionDepth, clustering=None, selected_clusters_ids=None, show_out=True, outlier_type="tail", epsilon_out=3, ax=None, plot_opts=None):
+def contourboxplot(masks, depth=Depth.EpsilonInclusionDepth, target_mean_mcbd=None, clustering=None, selected_clusters_ids=None, show_out=True, outlier_type="tail", epsilon_out=3, ax=None, plot_opts=None):
     num_contours = len(masks)    
 
     # TODO: verify all masks have the same shape
@@ -81,7 +81,7 @@ def contourboxplot(masks, depth=Depth.EpsilonInclusionDepth, clustering=None, se
     num_contours_per_cluster = [np.where(clustering == cluster_id)[0].size for cluster_id in clusters_ids]
 
     if depth == Depth.ContourBandDepth or depth == Depth.ModifiedContourBandDepth:
-        depths = np.zeros(len(masks))  # TODO
+        depths = contourbanddepth(masks, depth=depth, target_mean_mcbd=target_mean_mcbd)
     elif depth == Depth.InclusionDepth or depth == Depth.EpsilonInclusionDepth:
         depths = inclusiondepth(masks, depth=depth)              
     else:
