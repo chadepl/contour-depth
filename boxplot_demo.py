@@ -3,8 +3,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-import sys  # TODO: remove
-sys.path.insert(0, "./src")  # TODO: remove
 import contour_depth
 from contour_depth import Depth
 
