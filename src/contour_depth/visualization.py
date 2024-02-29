@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from .depth import Depth, compute_band_depth
+from .cluster import compute_depth_in_cluster
 
 colors = ['#66c2a5', '#fc8d62', '#8da0cb', '#e78ac3',
           '#a6d854', '#ffd92f', '#e5c494', '#b3b3b3']
@@ -12,7 +13,7 @@ def show_spaghetti_plot(masks, iso_value, arr=None, is_arr_categorical=True, vmi
     Parameters
     ----------
     masks : list
-        List of 2d ndarrays, each corresponding to a scalar field/
+        List of 2d ndarrays, each corresponding to a scalar field.
     iso_value : bool
         Iso value to use to convert the ensemble scalar fields into binary masks.
     arr : ndarray, optional
@@ -78,14 +79,37 @@ def show_spaghetti_plot(masks, iso_value, arr=None, is_arr_categorical=True, vmi
     return fig
 
 
-# Plots contour boxplot based on the method (depth notion).
-# The boxplot supports multi-modal contour boxplots.
-# If a labeling is specified, the depths are the relative depths with respect to each cluster as in the reference [CITE].
-# User specificies the outlier method, either depth threshold, percentage or tail.
-# For now, this method does not support overlaying an image.
-# Returns newly created figure, otherwise the figure to which the ax is connected.
-def show_box_plot(masks, depth=Depth.EpsilonInclusionDepth, clustering=None, selected_clusters_ids=None, show_out=True, outlier_type="tail", epsilon_out=3, ax=None, plot_opts=None):
-    
+def show_box_plot(masks, depth=Depth.EpsilonInclusionDepth, clustering=None, selected_clusters_ids=None, representative="trimmed_mean", show_out=True, outlier_type="tail", epsilon_out=3, ax=None, plot_opts=None):
+    """Plots an ensemble of contours using the contour boxplot idiom.
+
+    Parameters
+    ----------
+    masks : list
+        List of 2d ndarrays, each corresponding to a scalar field.
+    depth : Depth, optional
+        Type of depth metric to use, by default Depth.EpsilonInclusionDepth
+    clustering : ndarray, optional
+        Integer ndarray with clustering, by default None. If a clustering is passed, relative depth is used.
+    selected_clusters_ids : list, optional
+        List of clusters to plot, by default None (then it plots all the clusters). 
+    representative : str, optional
+        Either median or trimmed_mean, by default "trimmed_mean".
+    show_out : bool, optional
+        Wheter to show or not outliers, by default True.
+    outlier_type : str, optional
+        tail, threshold or percent, by default "tail".
+    epsilon_out : int, optional
+        Depending on the outlier type a integer in [1, N], a depth threshold in [0,1] (float) or a proportion in [0,1] (percent), by default 3.
+    ax : Axes, optional
+        Pyplot Axes, by default None
+    plot_opts : _type_, optional
+        Dict with plotting options, by default None. For now no plotting options are available.
+
+    Returns
+    -------
+    Figure
+        The figure attached to the ax on which the spaghetti plot was plotted.
+    """
     
     num_contours = len(masks)
     masks_shape = masks[0].shape  # r, c
@@ -98,7 +122,10 @@ def show_box_plot(masks, depth=Depth.EpsilonInclusionDepth, clustering=None, sel
     num_contours_per_cluster = [np.where(clustering == cluster_id)[
         0].size for cluster_id in clusters_ids]
 
-    depths = compute_band_depth(masks, depth)
+    if clusters_ids.size > 1:
+        depths = compute_depth_in_cluster(masks, clustering, clusters_ids.size, depth)
+    else:
+        depths = compute_band_depth(masks, depth)
     cluster_statistics = __get_bp_depth_elements(
         masks, depths, clustering=clustering, outlier_type=outlier_type, epsilon_out=epsilon_out)
 
@@ -115,14 +142,14 @@ def show_box_plot(masks, depth=Depth.EpsilonInclusionDepth, clustering=None, sel
     for cluster_id in selected_clusters_ids:
 
         if selected_clusters_ids.size == 1:  # traditional boxplot representation
-            median_color = "yellow"
+            rep_color = "yellow"
             outliers_color = "red"
             bands_color = {100: "plum", 50: "purple"}
             bands_alpha = {100: 0.3, 50: 0.3}
         else: # multimodal representation
             cluster_color = colors[cluster_id]
 
-            median_color = cluster_color
+            rep_color = cluster_color
             outliers_color = cluster_color
             bands_color = cluster_color
             bands_color = {100: cluster_color, 50: cluster_color}
@@ -142,9 +169,14 @@ def show_box_plot(masks, depth=Depth.EpsilonInclusionDepth, clustering=None, sel
                             bands_color[bweight], ], alpha=bands_alpha[bweight])
 
         if "representatives" in cluster_statistics[cluster_id]:
-            median_mask = cluster_statistics[cluster_id]["representatives"]["masks"][0]
-            ax.contour(median_mask, levels=[0.5,], colors=[
-                       median_color, ], linewidths=[3,])
+            if representative == "median":
+                rep_mask = cluster_statistics[cluster_id]["representatives"]["masks"][0]
+            elif representative == "trimmed_mean":
+                rep_mask = cluster_statistics[cluster_id]["representatives"]["masks"][1]
+            else:
+                assert False, f"representative can be either median or trimmed_mean"
+            ax.contour(rep_mask, levels=[0.5,], colors=[
+                       rep_color, ], linewidths=[3,])
 
     # Add legend clusters + proportions
     if selected_clusters_ids.size > 1:
@@ -215,7 +247,7 @@ def __get_bp_depth_elements(masks, depths, clustering=None, outlier_type="tail",
         sorted_depths_idx = np.argsort(subset_depths)[::-1]
         band100_idx = sorted_depths_idx[~np.in1d(
             sorted_depths_idx, outliers_idx)]
-        band50_idx = band100_idx[:band100_idx.size // 4]
+        band50_idx = band100_idx[:band100_idx.size // 2]
 
         band100_coords = [coords[bid] for bid in band100_idx]
         band50_coords = [coords[bid] for bid in band50_idx]
@@ -246,9 +278,9 @@ def __get_bp_depth_elements(masks, depths, clustering=None, outlier_type="tail",
             idx=["b100", "b50"], masks=[band100_mask, band50_mask], weights=[100, 50])
 
         # trimmed mean
-        # masks_arr = np.array([m.flatten() for m in [masks[i] for i in cbp_band100]])
-        # masks_mean = masks_arr.mean(axis=0)
-        # contours = find_contours(masks_mean.reshape(masks[0].shape), level=0.5)
-        # plot_contour(contours, line_kwargs=dict(c="dodgerblue", linewidth=5), smooth_line=smooth_line, ax=ax)
+        mean_coord = -1  # mean does not have a coordinate
+        mean_mask = (np.array([masks[bcoord] for bcoord in band100_coords]).mean(axis=0) > 0.5).astype(float)
+        cluster_statistics[cluster_id]["representatives"]["idx"].append(mean_coord)
+        cluster_statistics[cluster_id]["representatives"]["masks"].append(mean_mask)
 
     return cluster_statistics
