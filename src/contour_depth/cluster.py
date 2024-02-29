@@ -10,7 +10,7 @@ class Metric(Enum):
 
 # TODO: implement
 # This decouples the red calculation so that we can use it in the boxplot visualization
-def compute_depth_in_cluster(masks, cluster_assignment, num_clusters, inclusion_matrix, depth : Depth):
+def __compute_depth_in_cluster(masks, cluster_assignment, num_clusters, inclusion_matrix, depth : Depth):
     num_masks = len(masks)
     depth_in_cluster = np.empty((num_clusters, num_masks), dtype=np.float32)
     for c in range(num_clusters):
@@ -33,6 +33,15 @@ def compute_depth_in_cluster(masks, cluster_assignment, num_clusters, inclusion_
         else:
             assert False, f"Unsupported depth {depth}"
     return depth_in_cluster
+
+
+def compute_depth_in_cluster(masks, cluster_assignment, num_clusters, depth : Depth):
+    assert(depth != Depth.EpsilonContourBandDepth)
+    if depth == Depth.ContourBandDepth or Depth == Depth.InclusionDepth:
+        inclusion_matrix = compute_inclusion_matrix(masks)
+    else:
+        inclusion_matrix = compute_epsilon_inclusion_matrix(masks)
+    return __compute_depth_in_cluster(masks, cluster_assignment, num_clusters, inclusion_matrix, depth)
 
 
 def compute_relative_depth(depth_in_cluster, num_clusters):
@@ -84,7 +93,7 @@ def cluster_inclusion_matrix(
         cluster_assignment = rng.integers(
             low=0, high=num_clusters, size=num_masks)
         for _ in range(kmeans_max_iterations):
-            depth_in_cluster = compute_depth_in_cluster(masks, cluster_assignment, num_clusters, inclusion_matrix, depth)
+            depth_in_cluster = __compute_depth_in_cluster(masks, cluster_assignment, num_clusters, inclusion_matrix, depth)
 
             if metric == Metric.Depth:
                 metric_values = depth_in_cluster
