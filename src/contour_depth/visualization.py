@@ -85,9 +85,9 @@ def show_spaghetti_plot(masks, iso_value, arr=None, is_arr_categorical=True, vmi
 # For now, this method does not support overlaying an image.
 # Returns newly created figure, otherwise the figure to which the ax is connected.
 def show_box_plot(masks, depth=Depth.EpsilonInclusionDepth, clustering=None, selected_clusters_ids=None, show_out=True, outlier_type="tail", epsilon_out=3, ax=None, plot_opts=None):
+    
+    
     num_contours = len(masks)
-
-    # TODO: verify all masks have the same shape
     masks_shape = masks[0].shape  # r, c
 
     if clustering is None:
@@ -108,15 +108,25 @@ def show_box_plot(masks, depth=Depth.EpsilonInclusionDepth, clustering=None, sel
 
     # Plotting
     if ax is None:
-        fig, ax = plt.subplots(figsize=(5, 5), layout="tight")
+        fig, ax = plt.subplots()
+    else:
+        fig = ax.figure
 
     for cluster_id in selected_clusters_ids:
-        # plum, purple, yellow, red and teal where used before
-        cluster_color = colors[cluster_id]
 
-        median_color = cluster_color
-        outliers_color = cluster_color
-        bands_color = cluster_color
+        if selected_clusters_ids.size == 1:  # traditional boxplot representation
+            median_color = "yellow"
+            outliers_color = "red"
+            bands_color = {100: "plum", 50: "purple"}
+            bands_alpha = {100: 0.3, 50: 0.3}
+        else: # multimodal representation
+            cluster_color = colors[cluster_id]
+
+            median_color = cluster_color
+            outliers_color = cluster_color
+            bands_color = cluster_color
+            bands_color = {100: cluster_color, 50: cluster_color}
+            bands_alpha = {100: 1 * 0.3, 50: 0.5 * 0.3}
 
         if show_out and "outliers" in cluster_statistics[cluster_id]:
             cluster_outliers = cluster_statistics[cluster_id]["outliers"]
@@ -129,34 +139,34 @@ def show_box_plot(masks, depth=Depth.EpsilonInclusionDepth, clustering=None, sel
 
             for i, (bid, bmask, bweight) in enumerate(zip(cluster_bands["idx"], cluster_bands["masks"], cluster_bands["weights"])):
                 ax.contourf(bmask, levels=[0.5, 1.5], colors=[
-                            bands_color, ], alpha=(bweight/100) * 0.3)
+                            bands_color[bweight], ], alpha=bands_alpha[bweight])
 
         if "representatives" in cluster_statistics[cluster_id]:
             median_mask = cluster_statistics[cluster_id]["representatives"]["masks"][0]
             ax.contour(median_mask, levels=[0.5,], colors=[
                        median_color, ], linewidths=[3,])
 
-    # Add legend bar
-    print("shape", masks_shape)
-    from matplotlib.patches import Rectangle
-    OFFSET_R = 0.02 * masks_shape[1]  # distance from right side
-    PADDING_TB = 0.04 * masks_shape[0]  # padding top bottom
-    RECT_HEIGHT = masks_shape[0] - PADDING_TB
-    RECT_WIDTH = 0.05 * masks_shape[1]
-    BAR_X0 = masks_shape[1] - RECT_WIDTH - OFFSET_R
-    bar_y0 = PADDING_TB/2
-    for cluster_id in clusters_ids:
-        cluster_color = colors[cluster_id]
-        if cluster_id not in selected_clusters_ids:
-            cluster_color = "lightgray"
-        bar_height = RECT_HEIGHT * \
-            (num_contours_per_cluster[cluster_id]/num_contours)
-        rect = Rectangle((BAR_X0, bar_y0), RECT_WIDTH,
-                         bar_height, color=cluster_color, edgecolor=None)
-        ax.add_patch(rect)
-        bar_y0 += bar_height
+    # Add legend clusters + proportions
+    if selected_clusters_ids.size > 1:
+        from matplotlib.patches import Rectangle
+        OFFSET_R = 0.02 * masks_shape[1]  # distance from right side
+        PADDING_TB = 0.04 * masks_shape[0]  # padding top bottom
+        RECT_HEIGHT = masks_shape[0] - PADDING_TB
+        RECT_WIDTH = 0.05 * masks_shape[1]
+        BAR_X0 = masks_shape[1] - RECT_WIDTH - OFFSET_R
+        bar_y0 = PADDING_TB/2
+        for cluster_id in clusters_ids:
+            cluster_color = colors[cluster_id]
+            if cluster_id not in selected_clusters_ids:
+                cluster_color = "lightgray"
+            bar_height = RECT_HEIGHT * \
+                (num_contours_per_cluster[cluster_id]/num_contours)
+            rect = Rectangle((BAR_X0, bar_y0), RECT_WIDTH,
+                            bar_height, color=cluster_color, edgecolor=None)
+            ax.add_patch(rect)
+            bar_y0 += bar_height
 
-    return ax
+    return fig
 
 
 def __get_bp_depth_elements(masks, depths, clustering=None, outlier_type="tail", epsilon_out=3) -> dict:

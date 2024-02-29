@@ -10,7 +10,7 @@ from contour_depth import Depth
 
 if __name__ == "__main__":
     #masks = contour_depth.synthetic_data.three_rings(num_masks=250, num_rows=256, num_cols=256, seed=42)
-    masks = contour_depth.synthetic_data.circle_ensemble(num_masks=25, num_rows=256, num_cols=256, seed=42)
+    masks = contour_depth.synthetic_data.circle_ensemble(num_masks=25, num_rows=256, num_cols=256, radius_std=0.1, seed=42)
 
     fig, axs = plt.subplots(ncols=3)
 
