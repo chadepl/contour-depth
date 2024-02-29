@@ -146,7 +146,7 @@ def main_shape_with_outliers(
 ##############
 
 
-def compute_modes_sizes(num_masks, modes_proportions):
+def __compute_modes_sizes(num_masks, modes_proportions):
     modes_sizes = []
     running_size = 0
     for mp in modes_proportions[:-1]:
@@ -157,7 +157,7 @@ def compute_modes_sizes(num_masks, modes_proportions):
     return modes_sizes
 
 
-def magnitude_modes(num_masks, num_rows, num_cols,
+def __magnitude_modes(num_masks, num_rows, num_cols,
                     modes_proportions=(0.5, 0.5),
                     modes_radius_mean=(0.2, 0.15),
                     modes_radius_std=(0.2 * 0.05, 0.15 * 0.1),
@@ -167,7 +167,7 @@ def magnitude_modes(num_masks, num_rows, num_cols,
                     seed=None):
 
     num_modes = len(modes_proportions)
-    modes_sizes = compute_modes_sizes(num_masks, modes_proportions)
+    modes_sizes = __compute_modes_sizes(num_masks, modes_proportions)
 
     masks = []
     labs = []
@@ -211,7 +211,7 @@ def three_rings(
     Three circles with the x, y origin coordinates perturbed.
     This is the example used in the EnConVis paper.
     """
-    modes_sizes = compute_modes_sizes(num_masks, modes_proportions)
+    modes_sizes = __compute_modes_sizes(num_masks, modes_proportions)
 
     masks = []
     labs = []
@@ -385,17 +385,18 @@ def shape_families(
     return masks
 
 
-def close_rings():
+def close_rings(num_masks, num_rows, num_cols, seed=None):
     # large
-    m1 = circle_ensemble(10, 512, 512, (0.5, 0.5), (0, 0), 0.25, 0.01)
+    n = num_masks // 4
+    m1 = circle_ensemble(n, num_rows, num_cols, (0.5, 0.5), (0, 0), 0.25, 0.01, seed)
     l1 = np.repeat(0, 10).tolist()
 
     # small
-    m2 = circle_ensemble(10, 512, 512, (0.5, 0.52), (0, 0), 0.16, 0.02)
+    m2 = circle_ensemble(n, num_rows, num_cols, (0.5, 0.52), (0, 0), 0.16, 0.02, seed)
     l2 = np.repeat(1, 10).tolist()
 
     # shifted
-    m3 = circle_ensemble(20, 512, 512, (0.5, 0.7), (0, 0), 0.22, 0.03)
+    m3 = circle_ensemble(num_masks-2*n, num_rows, num_cols, (0.5, 0.7), (0, 0), 0.22, 0.03, seed)
     l3 = np.repeat(2, 10).tolist()
 
     return m1 + m2 + m3, l1 + l2 + l3
