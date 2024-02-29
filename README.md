@@ -1,7 +1,7 @@
 # contour-depth
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![PyPI version](https://badge.fury.io/py/library-name.svg)](https://badge.fury.io/py/contour-depth)
+[![PyPI version](https://badge.fury.io/py/contour-depth.svg)](https://badge.fury.io/py/contour-depth)
 
 Python library for computing statistical depth of ensembles of contours. The library supports the Contour Band Depth and Inclusion Depth methods. It also supports finding the ensemble's modes of variation by using depth-based clustering. Finally, it offers visualization utilities like spaghetti plots and Contour Box Plots. 
 
