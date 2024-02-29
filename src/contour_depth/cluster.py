@@ -10,8 +10,42 @@ class Metric(Enum):
 
 # TODO: implement
 # This decouples the red calculation so that we can use it in the boxplot visualization
-def relativedepth(masks, depth=Depth.EpsilonInclusionDepth):
-    pass
+def compute_depth_in_cluster(masks, cluster_assignment, num_clusters, inclusion_matrix, depth : Depth):
+    num_masks = len(masks)
+    depth_in_cluster = np.empty((num_clusters, num_masks), dtype=np.float32)
+    for c in range(num_clusters):
+        j_in_cluster = cluster_assignment == c
+
+        N = np.sum(j_in_cluster)
+        if depth == Depth.ContourBandDepth or depth == Depth.InclusionDepth or depth == Depth.EpsilonInclusionDepth:
+            N_a = np.sum(inclusion_matrix[:, j_in_cluster], axis=1)
+            N_b = np.sum(inclusion_matrix.T[:, j_in_cluster], axis=1)
+
+            if depth == Depth.ContourBandDepth:
+                # We need to normalize the depth such that it is  not dependent on the number of contours in the cluster.
+                # If the contour is already in the cluster then N_a and N_b range from 0 to N-1
+                # If the contour is *not* in the cluster then N_a and
+                # N_b range from 0 to N
+                N_ab_range = N - j_in_cluster
+                depth_in_cluster[c] = (N_a * N_b) / (N_ab_range * N_ab_range)
+            else:  # ID / eID
+                depth_in_cluster[c] = np.minimum(N_a, N_b) / N
+        else:
+            assert False, f"Unsupported depth {depth}"
+    return depth_in_cluster
+
+
+def compute_relative_depth(depth_in_cluster, num_clusters):
+    red = np.empty(depth_in_cluster.shape, dtype=np.float32)
+    for c in range(num_clusters):
+        # Compute the max value exluding the current cluster.
+        # There is a more efficient, but slightly dirtier,
+        # solution.
+        depth_between = np.max(
+            np.roll(depth_in_cluster, -c, axis=0)[1:, :], axis=0)
+        depth_within = depth_in_cluster[c, :]
+        red[c, :] = depth_within - depth_between
+    return red
 
 
 def cluster_inclusion_matrix(
@@ -25,6 +59,7 @@ def cluster_inclusion_matrix(
     masks = np.array(masks, dtype=np.float32)
     num_masks = masks.shape[0]
     # or depth == Depth.EpsilonContourBandDepth:
+    assert(depth != Depth.EpsilonContourBandDepth)
     if depth == Depth.EpsilonInclusionDepth:
         inclusion_matrix = compute_epsilon_inclusion_matrix(masks)
         # Required for feature parity with the O(N) version of eID.
@@ -49,50 +84,18 @@ def cluster_inclusion_matrix(
         cluster_assignment = rng.integers(
             low=0, high=num_clusters, size=num_masks)
         for _ in range(kmeans_max_iterations):
-            depth_in_cluster = np.empty(
-                (num_clusters, num_masks), dtype=np.float32)
-            for c in range(num_clusters):
-                j_in_cluster = cluster_assignment == c
-
-                N = np.sum(j_in_cluster)
-                if depth == Depth.ContourBandDepth or depth == Depth.InclusionDepth or depth == Depth.EpsilonInclusionDepth:
-                    N_a = np.sum(inclusion_matrix[:, j_in_cluster], axis=1)
-                    N_b = np.sum(inclusion_matrix.T[:, j_in_cluster], axis=1)
-
-                    if depth == Depth.ContourBandDepth:
-                        # We need to normalize the depth such that it is  not dependent on the number of contours in the cluster.
-                        # If the contour is already in the cluster then N_a and N_b range from 0 to N-1
-                        # If the contour is *not* in the cluster then N_a and
-                        # N_b range from 0 to N
-                        N_ab_range = N - j_in_cluster
-                        depth_in_cluster[c] = (
-                            N_a * N_b) / (N_ab_range * N_ab_range)
-                    else:  # ID / eID
-                        depth_in_cluster[c] = np.minimum(N_a, N_b) / N
-                else:
-                    assert False, f"Unsupported depth {depth}"
+            depth_in_cluster = compute_depth_in_cluster(masks, cluster_assignment, num_clusters, inclusion_matrix, depth)
 
             if metric == Metric.Depth:
                 metric_values = depth_in_cluster
             elif metric == Metric.RelativeDepth:
-                red = np.empty(depth_in_cluster.shape, dtype=np.float32)
-                for c in range(num_clusters):
-                    # Compute the max value exluding the current cluster.
-                    # There is a more efficient, but slightly dirtier,
-                    # solution.
-                    depth_between = np.max(
-                        np.roll(depth_in_cluster, -c, axis=0)[1:, :], axis=0)
-                    depth_within = depth_in_cluster[c, :]
-                    red[c, :] = depth_within - depth_between
-                metric_values = red
+                metric_values = compute_relative_depth(depth_in_cluster, num_clusters)
             else:
                 assert False, f"Unsupported metric {metric}"
 
             old_cluster_assignment = cluster_assignment
             cluster_assignment = np.argmax(metric_values, axis=0)
-            if not check_valid_assignment(
-                    cluster_assignment, num_clusters) or np.all(
-                    cluster_assignment == old_cluster_assignment):
+            if not check_valid_assignment(cluster_assignment, num_clusters) or np.all(cluster_assignment == old_cluster_assignment):
                 break
 
             depth_sum = np.sum(np.choose(cluster_assignment, metric_values))
