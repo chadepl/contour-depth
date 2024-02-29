@@ -88,6 +88,13 @@ def __rasterize_coords(x_coords, y_coords, num_rows, num_cols):
     return masks
 
 
+def __get_xy_coords(angles, radii):
+    num_members = radii.shape[0]
+    angles = angles.flatten().reshape(1,- 1).repeat(num_members, axis=0)
+    x = radii * np.cos(angles)
+    y = radii * np.sin(angles)
+    return x, y
+
 def main_shape_with_outliers(
         num_masks,
         num_rows,
@@ -124,7 +131,7 @@ def main_shape_with_outliers(
         (gp_sample_normal * (1 - should_contaminate)) + \
         (gp_sample_outliers * should_contaminate)
 
-    xs, ys = get_xy_coords(thetas, radii)
+    xs, ys = __get_xy_coords(thetas, radii)
     contours = __rasterize_coords(xs, ys, num_rows, num_cols)
 
     labels = should_contaminate[:, 0].astype(int)
