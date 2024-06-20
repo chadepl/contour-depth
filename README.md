@@ -5,6 +5,8 @@
 
 Python library for computing statistical depth of ensembles of contours. The library supports the Contour Band Depth and Inclusion Depth methods. It also supports finding the ensemble's modes of variation by using depth-based clustering. Finally, it offers visualization utilities like spaghetti plots and Contour Box Plots. 
 
+![Different stages of the ensemble analysis process for an ensemble of segmentations of the right parotid gland of a head and neck cancer patient. a) and b) present an overview of the ensemble using a spaghetti plot and a contour boxplot based on the depths of the complete ensemble. c) and d) present a multi-modal analysis of the ensemble. c) depicts an overview of the different modes of variation and d) focuses on the less representative variation mode.](teaser-multimodal-contour-depth.png "Analysis pipeline using contour depths")
+
 ## Installation
 
 You can install the library via pip:
@@ -52,16 +54,32 @@ if __name__ == "__main__":
 
 ## Citation
 
-If you use this library in your work and would like to cite it, please use the following BibTeX entry:
+If you use this library in your work and would like to cite it, please use the following BibTeX entries:
 
 ```bibtex
-@misc{author_year_libraryname,
-  author = {Author Name},
-  title = {Library Name},
-  year = {Year},
-  publisher = {Publisher},
-  howpublished = {\url{link-to-paper}},
+@article{10.1109/TVCG.2024.3350076,
+  author={Chaves-de-Plaza, Nicolas F. and Mody, Prerak and Staring, Marius and van Egmond, René and Vilanova, Anna and Hildebrandt, Klaus},
+  journal={IEEE Transactions on Visualization and Computer Graphics}, 
+  title={Inclusion Depth for Contour Ensembles}, 
+  year={2024},
+  volume={},
+  number={},
+  pages={1-12},
+  keywords={Data visualization;Visualization;Uncertainty;Feature extraction;Data models;Computational modeling;Semantic segmentation;Uncertainty visualization;contours;ensemble summarization;depth statistics},
+  doi={10.1109/TVCG.2024.3350076}
 }
+```
+
+```bibtex
+@article{10.1111/cgf.15083,
+	author = {Chaves-de-Plaza, N.F. and Molenaar, M. and Mody, P. and Staring, M. and van Egmond, R. and Eisemann, E. and Vilanova, A. and Hildebrandt, K.},
+	journal = {Computer Graphics Forum},
+	number = {3},
+	pages = {e15083},
+	title = {Depth for Multi-Modal Contour Ensembles},
+	volume = {43},
+	year = {2024},
+  doi={10.1111/cgf.15083}}
 ```
 
 ## License
