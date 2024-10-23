@@ -47,7 +47,11 @@ Finally, we believe the demo and the concepts it illustrates can be used in othe
 ## References and materials
 
 [1] Lin, D., Wahid, K. A., Nelms, B. E., He, R., Naser, M. A., Duke, S., ... & Gillespie, E. F. (2023). E pluribus unum: prospective acceptability benchmarking from the Contouring Collaborative for Consensus in Radiation Oncology crowdsourced initiative for multiobserver segmentation. Journal of Medical Imaging, 10(S1), S11903-S11903.
+
 [2] Wahid, K. A., Lin, D., Sahin, O., Cislo, M., Nelms, B. E., He, R., ... & Gillespie, E. F. (2023). Large scale crowdsourced radiotherapy segmentations across a variety of cancer anatomic sites. Scientific data, 10(1), 161.
+
 [3] [Github code](https://github.com/kwahid/C3RO_analysis?tab=readme-ov-file) for the analysis of the C3RO study [1] 
+
 [4] [Data](https://figshare.com/articles/dataset/Large-scale_crowdsourced_radiotherapy_segmentations_across_a_variety_of_cancer_sites/21074182?file=42025569) of the C3RO study [1]
-[5] STAPLE algorithm
+
+[5] STAPLE algorithm: Warfield, S. K., Zou, K. H., & Wells, W. M. (2004). Simultaneous truth and performance level estimation (STAPLE): an algorithm for the validation of image segmentation. IEEE transactions on medical imaging, 23(7), 903-921.
