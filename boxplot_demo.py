@@ -1,5 +1,7 @@
-# we compute the depths using the different methods
-# then we plot them using a boxplot
+"""
+We compute the depths using the different methods.
+Then we plot them using a boxplot.
+"""
 import matplotlib.pyplot as plt
 import numpy as np
 

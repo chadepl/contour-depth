@@ -2,3 +2,4 @@ dist/
 **/.DS_Store
 **/__pycache__/
 .vscode/
+napari_demo/c3ro_dataset

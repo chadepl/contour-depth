@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from .depth import Depth, compute_band_depth
+from .depth import Depth, compute_contour_depth
 from .cluster import compute_depth_in_cluster
 
 colors = ['#66c2a5', '#fc8d62', '#8da0cb', '#e78ac3',
@@ -125,7 +125,7 @@ def show_box_plot(masks, depth=Depth.EpsilonInclusionDepth, clustering=None, sel
     if clusters_ids.size > 1:
         depths = compute_depth_in_cluster(masks, clustering, clusters_ids.size, depth)
     else:
-        depths = compute_band_depth(masks, depth)
+        depths = compute_contour_depth(masks, depth)
     cluster_statistics = __get_bp_depth_elements(
         masks, depths, clustering=clustering, outlier_type=outlier_type, epsilon_out=epsilon_out)
 

@@ -1,16 +1,35 @@
 import numpy as np
 from enum import Enum
 
-from .depth import Depth, compute_inclusion_matrix, compute_epsilon_inclusion_matrix
+from .depth import Depth, compute_inclusion_matrix, compute_epsilon_inclusion_matrix, _get_agg_axes
+
 
 class Metric(Enum):
     Depth = 1
     RelativeDepth = 2
 
 
-# TODO: implement
-# This decouples the red calculation so that we can use it in the boxplot visualization
-def __compute_depth_in_cluster(masks, cluster_assignment, num_clusters, inclusion_matrix, depth : Depth):
+def __compute_depth_in_cluster(masks:list[np.array], cluster_assignment:np.array, num_clusters:int, inclusion_matrix:np.array, depth:Depth) -> np.array:
+    """Computes the depth of each contour with respect to each cluster.
+
+    Parameters
+    ----------
+    masks : list[np.array]
+        List of binary masks representing the contours.
+    cluster_assignment : np.array
+        Array with membership labels of each contour in the ensemble.
+    num_clusters : int
+        Number of unique labels in the clustering.
+    inclusion_matrix : np.array
+        Inclusion matrix for the input ensemble(`masks`)
+    depth : Depth
+        Choice of depth notion (see the Depth enum for available options). 
+
+    Returns
+    -------
+    np.array
+        Array of shape num_clusters x num_masks with the depth of each contour with respect to each cluster.
+    """
     num_masks = len(masks)
     depth_in_cluster = np.empty((num_clusters, num_masks), dtype=np.float32)
     for c in range(num_clusters):
@@ -35,7 +54,25 @@ def __compute_depth_in_cluster(masks, cluster_assignment, num_clusters, inclusio
     return depth_in_cluster
 
 
-def compute_depth_in_cluster(masks, cluster_assignment, num_clusters, depth : Depth):
+def compute_depth_in_cluster(masks:list[np.array], cluster_assignment:np.array, num_clusters:int, depth:Depth) -> np.array:
+    """Computes the depth of each contour with respect to each cluster.
+
+    Parameters
+    ----------
+    masks : list[np.array]
+        List of binary masks representing the contours.
+    cluster_assignment : np.array
+        Array with membership labels of each contour in the ensemble.
+    num_clusters : int
+        Number of unique labels in the clustering.
+    depth : Depth
+        Choice of depth notion (see the Depth enum for available options). 
+
+    Returns
+    -------
+    np.array
+        Array of shape num_clusters x num_masks with the depth of each contour with respect to each cluster.
+    """
     assert(depth != Depth.EpsilonContourBandDepth)
     if depth == Depth.ContourBandDepth or Depth == Depth.InclusionDepth:
         inclusion_matrix = compute_inclusion_matrix(masks)
@@ -44,7 +81,21 @@ def compute_depth_in_cluster(masks, cluster_assignment, num_clusters, depth : De
     return __compute_depth_in_cluster(masks, cluster_assignment, num_clusters, inclusion_matrix, depth)
 
 
-def compute_relative_depth(depth_in_cluster, num_clusters):
+def compute_relative_depth(depth_in_cluster:np.array, num_clusters:int) -> np.array:
+    """Computes relative depths (depth within - depth between) of a contour ensemble.
+
+    Parameters
+    ----------
+    depth_in_cluster : np.array
+        Array of shape num_clusters x num_masks with the depth of each contour with respect to each cluster.
+    num_clusters : int
+        Number of unique labels in the clustering.
+
+    Returns
+    -------
+    np.array
+        Array containing the ReD of each contour.
+    """
     red = np.empty(depth_in_cluster.shape, dtype=np.float32)
     for c in range(num_clusters):
         # Compute the max value exluding the current cluster.
@@ -58,13 +109,37 @@ def compute_relative_depth(depth_in_cluster, num_clusters):
 
 
 def cluster_inclusion_matrix(
-        masks,
-        num_clusters,
-        depth=Depth.EpsilonInclusionDepth,
-        metric=Metric.Depth,
-        kmeans_num_attempts=5,
-        kmeans_max_iterations=10,
-        kmeans_random_seed=42):
+        masks:list[np.array],
+        num_clusters:int,
+        depth:Depth=Depth.EpsilonInclusionDepth,
+        metric:Metric=Metric.Depth,
+        kmeans_num_attempts:int=5,
+        kmeans_max_iterations:int=10,
+        kmeans_random_seed:int=42) -> np.array:
+    """Clusters contour ensemble based on inclusion matrix.
+
+    Parameters
+    ----------
+    masks : list[np.array]
+        List of binary masks representing the contours.
+    num_clusters : int
+        Number of unique labels in the clustering.
+    depth : Depth, optional
+        Choice of depth notion (see the Depth enum for available options). 
+    metric : Metric, optional
+        Choice of metric to use for clustering.
+    kmeans_num_attempts : int, optional
+        Number of attempts for the clustering algorithm, by default 5.
+    kmeans_max_iterations : int, optional
+        Max number of iterations for the clustering algorithm, by default 10.
+    kmeans_random_seed : int, optional
+        Random seed, by default 42.
+
+    Returns
+    -------
+    np.array
+        Clustering of the contour ensemble.
+    """
     masks = np.array(masks, dtype=np.float32)
     num_masks = masks.shape[0]
     # or depth == Depth.EpsilonContourBandDepth:
@@ -116,16 +191,47 @@ def cluster_inclusion_matrix(
 
 
 def cluster_optimized_eid(
-        masks,
-        num_clusters,
-        metric=Metric.Depth,
-        kmeans_num_attempts=5,
-        kmeans_max_iterations=10,
-        kmeans_random_seed=42):
+        masks:list[np.array],
+        num_clusters:int,
+        metric:Metric=Metric.Depth,
+        kmeans_num_attempts:int=5,
+        kmeans_max_iterations:int=10,
+        kmeans_random_seed:int=42) -> np.array:
+    """Clusters contour ensemble. Optimized for the epsilon Inclusion Depth.
+
+    Parameters
+    ----------
+    masks : list[np.array]
+        List of binary masks representing the contours.
+    num_clusters : int
+        Number of unique labels in the clustering.
+    depth : Depth, optional
+        Choice of depth notion (see the Depth enum for available options). 
+    metric : Metric, optional
+        Choice of metric to use for clustering.
+    kmeans_num_attempts : int, optional
+        Number of attempts for the clustering algorithm, by default 5.
+    kmeans_max_iterations : int, optional
+        Max number of iterations for the clustering algorithm, by default 10.
+    kmeans_random_seed : int, optional
+        Random seed, by default 42.
+
+    Returns
+    -------
+    np.array
+        Clustering of the contour ensemble.
+    """
     masks = np.array(masks, dtype=np.float32)
-    num_masks, height, width = masks.shape
+    agg_axes = _get_agg_axes(masks)
+    if len(agg_axes) == 2:
+        num_masks, height, width = masks.shape
+        arr_size = [height, width]
+    elif len(agg_axes) == 3:
+        num_masks, height, width, depth = masks.shape
+        arr_size = [height, width, depth]
+
     neg_masks = 1 - masks
-    areas = np.sum(masks, axis=(1, 2))
+    areas = np.sum(masks, axis=agg_axes)
     inv_areas = 1 / areas
 
     if kmeans_random_seed is None:
@@ -140,9 +246,9 @@ def cluster_optimized_eid(
             low=0, high=num_clusters, size=num_masks)
         for _ in range(kmeans_max_iterations):
             precompute_in = np.empty(
-                (num_clusters, height, width), dtype=np.float32)
+                [num_clusters, ] + arr_size, dtype=np.float32)
             precompute_out = np.empty(
-                (num_clusters, height, width), dtype=np.float32)
+                [num_clusters, ] + arr_size, dtype=np.float32)
 
             for c in range(num_clusters):
                 j_in_cluster = cluster_assignment == c
@@ -163,8 +269,8 @@ def cluster_optimized_eid(
                     empty_cluster = True
                     break
                 IN_in = N - inv_areas * \
-                    np.sum(masks * precompute_in[c], axis=(1, 2))
-                IN_out = N - np.sum(neg_masks * precompute_out[c], axis=(1, 2))
+                    np.sum(masks * precompute_in[c], axis=agg_axes)
+                IN_out = N - np.sum(neg_masks * precompute_out[c], axis=agg_axes)
                 depth_in_cluster[c] = np.minimum(IN_in, IN_out) / N
             if empty_cluster:
                 break

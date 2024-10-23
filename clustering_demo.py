@@ -3,8 +3,6 @@ import scipy.signal
 import numpy as np
 import time
 
-import sys  # TODO: remove
-sys.path.insert(0, "./src")  # TODO: remove
 from contour_depth import Depth, Metric
 import contour_depth
 
